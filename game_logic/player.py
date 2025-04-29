@@ -1,34 +1,78 @@
 # game_logic/player.py
 
-from .card import card_to_string # Для красивого вывода руки
+# --- Ячейка 1: Импорты ---
+from .card import Card # Добавили Card для аннотаций
+from typing import List, Optional # Добавили для аннотаций
 
+
+# --- Ячейка 2: Класс Player ---
 class Player:
-    """Представляет игрока."""
+    """Представляет игрока в карточной игре."""
 
-    def __init__(self, name="Игрок"):
+    def __init__(self, name: str = "Игрок"):
         self.name = name
-        self.hand = [] # Карты на руках у игрока
+        self.hand: List[Card] = [] # Карты на руках у игрока
 
-    def receive_card(self, card):
-        """Добавляет карту в руку игрока."""
+    def is_hand_empty(self) -> bool:
+        """
+        Проверяет, пуста ли рука игрока.
+
+        Returns:
+            True, если в руке нет карт, False в противном случае.
+        """
+        return not self.hand
+
+    def receive_card(self, card: Optional[Card]):
+        """Добавляет карту в руку игрока, если она действительна."""
         if card:
             self.hand.append(card)
 
-    def show_hand(self):
-        """Возвращает строковое представление руки игрока."""
-        if not self.hand:
-            return f"{self.name}: Рука пуста."
-        # Сортируем руку для удобства просмотра (опционально, можно настроить сортировку)
-        # sorted_hand = sorted(self.hand) # Потребует определения сравнения для Card
-        hand_str = ", ".join(card_to_string(card) for card in self.hand)
-        return f"{self.name}: {hand_str}"
 
-    def __str__(self):
+    def show_hand(self) -> str:
+        """Возвращает строковое представление руки игрока."""
+
+        if not self.hand:
+            return "Рука пуста."
+
+        # Формируем строку с картами и возвращаем значение
+        return ", ".join(str(card) for card in self.hand)
+
+
+    def find_and_remove_matching_card(self, target_card: Card) -> Optional[Card]:
+        """
+        Ищет карту в руке, которая совпадает с target_card по масти или рангу (приоритет масти).
+        Если находит, УДАЛЯЕТ карту из руки и возвращает её.
+        Возвращает None, если подходящая карта не найдена.
+        """
+        
+        # Сначала ищем по масти
+        card_to_remove = None
+        for card in self.hand:
+            # Сравниваем каждую карту по масти с target_card
+            if card.suit == target_card.suit:
+                card_to_remove = card
+                break # Нашли первое совпадение по масти, выходим
+
+        # Если по масти не нашли, ищем по рангу
+        if card_to_remove is None:           
+            for card in self.hand:
+                # Сравниваем каждую карту по рангу с target_card
+                if card.rank == target_card.rank:
+                    card_to_remove = card
+                    break # Нашли первое совпадение по рангу, выходим
+
+        # Если нашли карту (по масти или рангу)
+        if card_to_remove:
+            # Удаляем карту из руки и возвращаем значение этой карты
+            self.hand.remove(card_to_remove)
+            return card_to_remove        
+        else:
+            return None # Ничего не нашли
+        
+
+    def __str__(self) -> str:
+        # ИЗМЕНЕНИЕ: Добавлена аннотация типа возвращаемого значения.
         return self.name
 
-# Пример использования:
-# player1 = Player("Вася")
-# print(player1)
-# card_example = Card('A', '♠')
-# player1.receive_card(card_example)
-# print(player1.show_hand())
+
+ 
