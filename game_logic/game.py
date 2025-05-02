@@ -1,8 +1,9 @@
 # game_logic/game.py
 
 # --- Ячейка 1: Импорты ---
+import random
 from .exceptions import CountPlayersException, EmptyDeckError
-from .card import Card
+from .card import Card, SUITS
 from .deck import Deck
 from .player import Player
 from typing import List, Optional
@@ -23,6 +24,9 @@ class Game:
         self.players = players
         self.discard_pile: List[Card] = [] # Стопка сброса (отбой)
         self.current_player_index: int = 0 # Индекс текущего игрока
+        self.is_active_card: bool = False
+        self.suit_for_quene: str = random.choice(SUITS)
+        self.king_of_spades = Card('K', '♠')
 
 
     def _deal_initial_hands_and_start_discard(self, target_hand_size: int = 4) -> bool:
@@ -123,10 +127,27 @@ class Game:
 
             
 
-    def players_turn(self, current_player: Player) -> Optional[Player]:
+    def players_turn(self, current_player: Player):
         
-        # Попытка найти карту и сходить
-        current_card = current_player.find_and_remove_matching_card(self.discard_pile[-1])
+        # Если последнюю карту положил предыдущий игрок, проверяем ее. Если окажется штрафной, берем карту и снимаем асtive_card
+        if self.is_active_card:
+            is_penalty_card = self.is_applying_fine(current_player)
+            # Если карта штрафная 
+            if is_penalty_card:
+                # Снимаем активность карты
+                self.is_active_card = False
+                # Выходим из функции
+                return
+            
+
+        # Если последняя карта дама, пытаемся найти карту с заказанной мастью
+        if self.discard_pile[-1].rank == 'Q':
+            current_card = current_player.find_and_remove_matching_card(Card(None, self.suit_for_quene))
+
+        # Иначе находим карту под последнюю карту на общих основаниях
+        else:
+            current_card = current_player.find_and_remove_matching_card(self.discard_pile[-1])
+
 
         # Если карта найдена
         if current_card != None:
@@ -134,20 +155,18 @@ class Game:
             print(f"{current_player.name} сходил: {current_card}")
 
 
+            # Если сходил дамой, то заказывает рандомную карту
+            if current_card.rank == 'Q':
+                suit = random.choice(SUITS)
+                self.suit_for_quene = suit
+                print(f"{current_player.name} заказывает {suit}")
+
+            self.is_active_card = True
+            
+
         # Если нужной карты нет
         else:
-            try:
-                # Берем карту из колоды
-                card = self.deck.deal_one()
-
-            # Если колода пустая берем стопку сброса кроме последней карты и тасуем.     
-            except EmptyDeckError:
-
-                self.shuffling_discard_pile()
-                # Берем карту из новой колоды
-                card = self.deck.deal_one()
-    
-
+            card = self.get_card()
             # Присваиваем игроку карту из колоды
             current_player.receive_card(card)
 
@@ -165,7 +184,56 @@ class Game:
             # Если не найдена пишем об этом
             else:
                 print(f"{current_player.name} не нашел после взятия подходящую карту")
+        
+        # Если сверху 6 то ее должен закрыть игрок
+        if self.discard_pile[-1].rank == '6':
+            print(f"{current_player} должен закрыть 6")
+            self.players_turn(current_player)
+                
 
+    def is_applying_fine(self, current_player: Player) -> bool:
+
+        current_card = self.discard_pile[-1]
+
+        # Если последняя карта 7 игрок берет 2 карты
+        if current_card.rank == "7":
+            print(f"{current_player.name} берет 2 карты")
+            for _ in range(2):
+                current_player.receive_card(self.get_card())
+            self.is_active_card = False
+            return True
+        
+        # Если последняя карта король пики, игрок берет 5 карт.
+        if current_card == self.king_of_spades:
+            print(f"{current_player.name} берет 5 карт!!!")
+            for _ in range(5):
+                current_player.receive_card(self.get_card())
+            self.is_active_card = False
+            return True
+        
+        # Если последняя карта туз, игрок пропускает ход
+        if current_card.rank == "A":
+            print(f"{current_player.name} пропускает ход")
+            self.is_active_card = False
+            return True
+        
+        # Если карта не штрафная возвращаем False
+        return False
+        
+            
+    def get_card(self) -> Card:
+        try:
+            # Берем карту из колоды
+            card = self.deck.deal_one()
+            return card
+
+        # Если колода пустая берем стопку сброса кроме последней карты и тасуем.     
+        except EmptyDeckError:
+
+            self.shuffling_discard_pile()
+            # Берем карту из новой колоды
+            card = self.deck.deal_one()
+            return card
             
 
     def shuffling_discard_pile(self):

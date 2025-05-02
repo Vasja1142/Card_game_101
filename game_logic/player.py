@@ -38,7 +38,7 @@ class Player:
         return ", ".join(str(card) for card in self.hand)
 
 
-    def find_and_remove_matching_card(self, target_card: Card) -> Optional[Card]:
+    def find_and_remove_matching_card(self, target_card: Optional[Card]) -> Optional[Card]:
         """
         Ищет карту в руке, которая совпадает с target_card по масти или рангу (приоритет масти).
         Если находит, УДАЛЯЕТ карту из руки и возвращает её.
@@ -60,6 +60,15 @@ class Player:
                 if card.rank == target_card.rank:
                     card_to_remove = card
                     break # Нашли первое совпадение по рангу, выходим
+
+        # Если не нашли по карте и масти, пытаемся найти дамы 
+        if card_to_remove is None:
+            for card in self.hand:
+                # Пытаемся найти даму
+                if card.suit == 'Q':
+                    card_to_remove = card
+                    print(f"{self.name} нашел {card} и сходит ею")
+                    break # Нашли Даму, выходим
 
         # Если нашли карту (по масти или рангу)
         if card_to_remove:
