@@ -88,7 +88,7 @@ class Game:
         """Запускает основной процесс игры."""
 
         # Шаг 1: Раздача карт и инициализация стопки сброса по новым правилам
-        if not self._deal_initial_hands_and_start_discard(target_hand_size=10):
+        if not self._deal_initial_hands_and_start_discard():
             print("Ошибка инициализации игры. Завершение.")
             return 
 
@@ -126,6 +126,7 @@ class Game:
                 flag_game = False
 
             
+    
 
     def players_turn(self, current_player: Player):
         
@@ -140,18 +141,40 @@ class Game:
                 return
             
 
-        # Если последняя карта дама, пытаемся найти карту с заказанной мастью
+        # Делаем попытку хода
+        # Если нужной карты нет
+        if not self.trying_to_make_a_move(current_player):
+            # Берем карту из колоды
+            card = self.get_card()
+            # Присваиваем игроку карту из колоды
+            current_player.receive_card(card)
+
+            print(f"{current_player.name} взял: {card}")
+
+            # Снова пытаемся сходить. Если не находим карту пишем об этом
+            if not self.trying_to_make_a_move(current_player):
+                print(f"{current_player.name} не нашел карту после взятия")
+
+                
+        # Если сверху 6 то ее должен закрыть игрок
+        if self.discard_pile[-1].rank == '6':
+            print(f"{current_player} должен закрыть 6")
+            self.players_turn(current_player)
+
+                
+
+    def trying_to_make_a_move(self, current_player: Player):
+
         if self.discard_pile[-1].rank == 'Q':
             current_card = current_player.find_and_remove_matching_card(Card(None, self.suit_for_quene))
 
-        # Иначе находим карту под последнюю карту на общих основаниях
-        else:
+        else: 
             current_card = current_player.find_and_remove_matching_card(self.discard_pile[-1])
 
 
-        # Если карта найдена
         if current_card != None:
             self.discard_pile.append(current_card)
+            
             print(f"{current_player.name} сходил: {current_card}")
 
 
@@ -162,34 +185,12 @@ class Game:
                 print(f"{current_player.name} заказывает {suit}")
 
             self.is_active_card = True
-            
-
-        # Если нужной карты нет
+            return True
         else:
-            card = self.get_card()
-            # Присваиваем игроку карту из колоды
-            current_player.receive_card(card)
+            print("Карта не найдена")
+            return False
 
-            # Просмотр взятой карты
-            print(f"{current_player.name} взял: {card}")
-
-            # Попытка найти карту и сходить после взятия карты из колоды
-            current_card = current_player.find_and_remove_matching_card(self.discard_pile[-1])
-
-            # Если карта найдена то ходим ею
-            if current_card != None:
-                self.discard_pile.append(current_card)
-                print(f"{current_player.name} сходил: {current_card}")
-            
-            # Если не найдена пишем об этом
-            else:
-                print(f"{current_player.name} не нашел после взятия подходящую карту")
-        
-        # Если сверху 6 то ее должен закрыть игрок
-        if self.discard_pile[-1].rank == '6':
-            print(f"{current_player} должен закрыть 6")
-            self.players_turn(current_player)
-                
+    
 
     def is_applying_fine(self, current_player: Player) -> bool:
 

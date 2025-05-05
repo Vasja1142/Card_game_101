@@ -65,12 +65,11 @@ class Player:
         if card_to_remove is None:
             for card in self.hand:
                 # Пытаемся найти даму
-                if card.suit == 'Q':
+                if card.rank == 'Q':
                     card_to_remove = card
-                    print(f"{self.name} нашел {card} и сходит ею")
                     break # Нашли Даму, выходим
 
-        # Если нашли карту (по масти или рангу)
+        # Если нашли карту 
         if card_to_remove:
             # Удаляем карту из руки и возвращаем значение этой карты
             self.hand.remove(card_to_remove)
